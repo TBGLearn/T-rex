@@ -9,16 +9,16 @@ export const CANVAS_CONFIG = {
 export const GAME_CONFIG = {
     INITIAL_OBSTACLE_SPEED: -4,
     SCORE_TIME_COUNT: 100,
-    GRAVITY: 0.8,
-    JUMP_POWER: -9,
+    GRAVITY: 0.6,
+    JUMP_POWER: -10,
     JUMP_DURATION: 12,
     MAX_SPEED: -12,
     SPEED_TIERS: [
         { score: 0, speed: -4 },
-        { score: 100, speed: -6 },
-        { score: 300, speed: -8 },
-        { score: 500, speed: -10 },
-        { score: 1000, speed: -12 }
+        { score: 100, speed: -5 },
+        { score: 300, speed: -6 },
+        { score: 500, speed: -7 },
+        { score: 1000, speed: -8 }
     ],
     OBSTACLE_FREQUENCY: {
         INITIAL: 0.008,

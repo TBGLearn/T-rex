@@ -34,7 +34,7 @@ export class Obstacle {
     }
 
     update(playerScore) {
-        // Cập nhật vị trí với tốc độ hiện tại
+        // KHÔNG tính toán tốc độ ở đây nữa, chỉ di chuyển theo dx đã được set
         this.x += this.dx;
 
         // Animate birds

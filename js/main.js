@@ -93,29 +93,50 @@ class Game {
         // Cleanup hoàn toàn
         this.cleanup();
         
-        // Tạo mới game state
+        // Tạo mới game state và set game mode
+        const selectedMode = this.gameState.gameMode;
         this.gameState = new GameState();
-        this.gameState.gameMode = this.gameState.gameMode;
-        this.gameState.startGame();
+        this.gameState.gameMode = selectedMode;
+        
+        // Reset tất cả các thông số về ban đầu
+        this.gameState.obstacleSpeed = GAME_CONFIG.INITIAL_OBSTACLE_SPEED;
+        this.gameState.gravity = GAME_CONFIG.GRAVITY;
+        this.gameState.jumpPower = GAME_CONFIG.JUMP_POWER;
+        
+        // Điều chỉnh canvas height
+        this.canvas.height = selectedMode === 2 ? CANVAS_CONFIG.HEIGHT_2P : CANVAS_CONFIG.HEIGHT;
         
         // Tạo mới players
         this.createPlayers();
         
         // Setup controls mới
+        if (this.controls) {
+            this.controls.cleanup();
+        }
         this.controls = new Controls(this.gameState, this.players);
         
-        // Bắt đầu các hệ thống game
+        // Reset và start các hệ thống game
+        if (this.scoreInterval) clearInterval(this.scoreInterval);
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        
         this.startScoreInterval();
         this.startTimer();
         
-        // Bắt đầu game loop
+        // Bắt đầu game
+        this.gameState.startGame();
         requestAnimationFrame(this.gameLoop);
     }
 
     cleanup() {
         // Clear all intervals
-        if (this.scoreInterval) clearInterval(this.scoreInterval);
-        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.scoreInterval) {
+            clearInterval(this.scoreInterval);
+            this.scoreInterval = null;
+        }
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
         
         // Clear all game objects
         this.players = [];
@@ -126,9 +147,13 @@ class Game {
             this.controls.cleanup();
             this.controls = null;
         }
-        
-        this.scoreInterval = null;
-        this.timerInterval = null;
+
+        // Reset game state
+        if (this.gameState) {
+            this.gameState.obstacleSpeed = GAME_CONFIG.INITIAL_OBSTACLE_SPEED;
+            this.gameState.gravity = GAME_CONFIG.GRAVITY;
+            this.gameState.jumpPower = GAME_CONFIG.JUMP_POWER;
+        }
     }
 
     createPlayers() {
@@ -157,13 +182,16 @@ class Game {
         clearInterval(this.scoreInterval);
         this.scoreInterval = setInterval(() => {
             if (this.gameState.gameRunning && !this.gameState.gameOver) {
+                // Chỉ tăng score cho các player chưa game over
                 this.players.forEach(player => {
                     if (!player.gameOver) {
                         player.score++;
-                        // Cập nhật tốc độ dựa trên điểm số mới
-                        this.gameState.updateObstacleSpeed(player.score);
                     }
                 });
+                
+                // Cập nhật tốc độ dựa trên điểm số cao nhất
+                const maxScore = Math.max(...this.players.map(p => p.score));
+                this.gameState.updateObstacleSpeed(maxScore);
             }
         }, GAME_CONFIG.SCORE_TIME_COUNT);
     }
@@ -178,9 +206,7 @@ class Game {
     }
 
     gameLoop() {
-        // Chỉ update và vẽ khi game đang chạy
         if (this.gameState.gameRunning && !this.gameState.gameOver) {
-            // Update game objects
             this.renderer.updateAnimations();
             
             // Update players
@@ -190,11 +216,11 @@ class Game {
                 }
             });
 
-            // Update và filter obstacles với tốc độ hiện tại từ gameState
+            // Update obstacles - chỉ cần set tốc độ một lần
+            const currentSpeed = this.gameState.obstacleSpeed;
             this.obstacles = this.obstacles.filter(obstacle => {
-                // Sử dụng tốc độ từ gameState
-                obstacle.dx = this.gameState.obstacleSpeed;
-                obstacle.update(Math.max(...this.players.map(p => p.score)));
+                obstacle.dx = currentSpeed;  // Sử dụng cùng một tốc độ cho tất cả obstacles
+                obstacle.update();  // Không cần truyền playerScore nữa
                 return obstacle.x + obstacle.width > 0;
             });
 
@@ -208,16 +234,12 @@ class Game {
                         
                         const lastObstacle = this.obstacles[this.obstacles.length - 1];
                         if (!lastObstacle || lastObstacle.x < this.canvas.width - 300) {
-                            try {
-                                const obstacle = Obstacle.generateRandom(
-                                    this.canvas,
-                                    groundHeight
-                                );
-                                if (obstacle) {
-                                    this.obstacles.push(obstacle);
-                                }
-                            } catch (error) {
-                                console.error('Error generating obstacle:', error);
+                            const obstacle = Obstacle.generateRandom(
+                                this.canvas,
+                                groundHeight
+                            );
+                            if (obstacle) {
+                                this.obstacles.push(obstacle);
                             }
                         }
                     }
@@ -245,10 +267,7 @@ class Game {
             }
         }
 
-        // Vẽ frame hiện tại
         this.renderer.draw(this.gameState, this.players, this.obstacles);
-
-        // Request next frame
         requestAnimationFrame(this.gameLoop);
     }
 
@@ -298,7 +317,9 @@ class Game {
     showModeSelection() {
         // Reset mọi thứ về ban đầu
         this.cleanup();
-        this.gameState = new GameState(); // Tạo mới hoàn toàn game state
+        
+        // Tạo mới hoàn toàn game state
+        this.gameState = new GameState();
         
         // Reset canvas
         this.canvas.height = CANVAS_CONFIG.HEIGHT;

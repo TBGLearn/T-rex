@@ -50,7 +50,7 @@ export class Player {
 
             // Áp dụng trọng lực với tốc độ giảm dần khi đang lên
             if (this.dy < 0 && this.jumpTime < GAME_CONFIG.JUMP_DURATION) {
-                this.dy += this.gameState.gravity * 0.5;
+                this.dy += this.gameState.gravity * 0.7;
             } else {
                 this.dy += this.gameState.gravity;
             }
